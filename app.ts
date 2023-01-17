@@ -18,7 +18,7 @@ const env = await config();
 console.info("env file loaded")
 
 // check that required information was loaded from env
-let requiredVars:string[] = [
+const requiredVars:string[] = [
     "CLIENT_KEY",
     "CLIENT_SECRET",
     "ACCESS_TOKEN"
