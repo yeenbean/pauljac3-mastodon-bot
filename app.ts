@@ -25,7 +25,9 @@ const requiredVars:string[] = [
 ]
 
 for (let index = 0; index < requiredVars.length; index++) {
-    if (env[requiredVars[index]] == undefined) throw new Error(env[requiredVars[index]] + " was not configured.");
+    if (env[requiredVars[index]] == undefined) {
+        throw new Error(env[requiredVars[index]] + " was not configured.");
+    }
 }
 
 // login
