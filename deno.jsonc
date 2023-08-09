@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "start:dev": "deno run --allow-read --allow-env --allow-net --watch app.ts",
+    "start": "deno run --allow-read --allow-write --allow-env --allow-net app.ts",
+    "start:fresh": "deno run --allow-read --allow-write --allow-env --allow-net --reload app.ts",
+    "fmt": "deno fmt app.ts",
+    "lint": "deno lint app.ts"
+  }
+}
