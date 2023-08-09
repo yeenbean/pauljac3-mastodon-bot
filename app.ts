@@ -215,7 +215,8 @@ if (now.getMinutes() == 59) {
       0,
       0,
     );
-  } else {next = new Date(
+  } else {
+    next = new Date(
       now.getFullYear(),
       now.getMonth(),
       now.getDate(),
@@ -223,7 +224,8 @@ if (now.getMinutes() == 59) {
       0,
       0,
       0,
-    );}
+    );
+  }
 } else {
   next = new Date(
     now.getFullYear(),
