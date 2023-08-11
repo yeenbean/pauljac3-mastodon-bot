@@ -14,6 +14,7 @@ import { config } from "https://deno.land/std@0.171.0/dotenv/mod.ts";
 import * as loggy from "https://deno.land/x/loggy@0.0.2/main.ts";
 import { Database } from "https://deno.land/x/aloedb@0.9.0/mod.ts";
 import api from "npm:@atproto/api@^0.5.4";
+import { TwitterApi } from "npm:twitter-api-v2@^1.15.1";
 const { BskyAgent } = api; // it doesnt work unless i do this. goofy fkn module.
 
 // retrieve environment variables
@@ -29,6 +30,11 @@ const requiredVars: string[] = [
   "BSKY_PW",
   "BSKY_URL",
   "DEBUG",
+  "TWITTER_API_KEY",
+  "TWITTER_API_SECRET",
+  "TWITTER_ACCESS_TOKEN",
+  "TWITTER_ACCESS_TOKEN_SECRET",
+  "TWITTER_BEARER_TOKEN",
 ];
 
 for (let index = 0; index < requiredVars.length; index++) {
@@ -62,6 +68,10 @@ await bsky.login({
   password: env["BSKY_PW"],
 });
 loggy.success("Connected to Bluesky.");
+
+// login to twitter
+const twitterUserClient = new TwitterApi(env["TWITTER_BEARER_TOKEN"]);
+const rwTwitter = twitterUserClient.readWrite;
 
 // build tweets array
 debug("Building tweets array");
@@ -144,12 +154,12 @@ try {
  * This function posts a status message to each connected account.
  * @param message The status to post to each account.
  */
-function postStatus(fediPost: string, bskyPost: string) {
+async function postStatus(fediPost: string, bskyPost: string, twitterPost: string) {
   // in the future, this function will also post to bluesky. each individual platform will move to its own function for actual posting functionality. yes ik thats hard to read im eepy.
   // Try to post to Mastodon
   try {
     debug("Posting to mastodon");
-    masto.v1.statuses.create({
+    await masto.v1.statuses.create({
       status: fediPost,
       visibility: "unlisted",
     });
@@ -161,12 +171,19 @@ function postStatus(fediPost: string, bskyPost: string) {
   // Try to post to Bluesky
   try {
     debug("Posting to Bluesky");
-    bsky.post({
+    await bsky.post({
       text: bskyPost,
     });
     loggy.up(`"bluesky: ${bskyPost}"`);
   } catch (error) {
     loggy.fail(`There was a problem while posting to Bluesky: ${error}`);
+  }
+
+  // Try posting to *shudders* X
+  try {
+    await rwTwitter.v2.tweet(twitterPost);
+  } catch (error) {
+    loggy.fail(`There was a problem while posting to Twitter: ${error}`);
   }
 }
 
@@ -197,7 +214,7 @@ async function postNextStatus(): Promise<void> {
 
     // post to socials
     debug("Posting...");
-    postStatus(fediPosts[entry.tweet], bskyPosts[entry.tweet]);
+    postStatus(fediPosts[entry.tweet], bskyPosts[entry.tweet], tweets[entry.tweet]);
     debug("Posted successfully");
 
     // increment
