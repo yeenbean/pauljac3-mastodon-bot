@@ -66,7 +66,23 @@ loggy.success("Connected to Bluesky.");
 // build tweets array
 debug("Building tweets array");
 const tweets = Deno.readTextFileSync("./tweet_file.txt").split("\n");
-loggy.success(`${tweets.length} tweets loaded.`);
+loggy.success(`${tweets.length} posts loaded.`);
+
+debug("Building fedi posts");
+const fediPosts = Deno.readTextFileSync("./tweet_file_fedi.txt").split("\n");
+loggy.success(`${fediPosts.length} posts loaded.`);
+
+debug("Building bsky posts");
+const bskyPosts = Deno.readTextFileSync("./tweet_file_bsky.txt").split("\n");
+loggy.success(`${bskyPosts.length} posts loaded.`);
+
+if (
+  tweets.length != fediPosts.length || tweets.length != bskyPosts.length ||
+  fediPosts.length != bskyPosts.length
+) {
+  loggy.critical("All tweet files must have the exact same length");
+  throw new Error("Tweet file lengths do not match.");
+}
 
 // TODO: build random reply array
 
@@ -128,25 +144,27 @@ try {
  * This function posts a status message to each connected account.
  * @param message The status to post to each account.
  */
-function postStatus(message: string) {
+function postStatus(fediPost: string, bskyPost: string) {
   // in the future, this function will also post to bluesky. each individual platform will move to its own function for actual posting functionality. yes ik thats hard to read im eepy.
-  loggy.up(`"${message}"`);
-
   // Try to post to Mastodon
   try {
+    debug("Posting to mastodon");
     masto.v1.statuses.create({
-      status: message,
+      status: fediPost,
       visibility: "unlisted",
     });
+    loggy.up(`"fedi: ${fediPost}"`);
   } catch (error) {
     loggy.fail(`There was a problem while posting to Mastodon: ${error}`);
   }
 
   // Try to post to Bluesky
   try {
+    debug("Posting to Bluesky");
     bsky.post({
-      text: message,
+      text: bskyPost,
     });
+    loggy.up(`"bluesky: ${bskyPost}"`);
   } catch (error) {
     loggy.fail(`There was a problem while posting to Bluesky: ${error}`);
   }
@@ -172,20 +190,28 @@ async function postNextStatus(): Promise<void> {
     if (entry == null) throw new Error("Error while loading database.");
 
     // this prevents empty posts from being published if the tweet file is ever shortened.
-    if (entry.tweet >= tweets.length) entry.tweet = 0;
+    if (entry.tweet >= tweets.length) {
+      entry.tweet = 0;
+      debug("Index was out of range so it was reset");
+    }
 
     // post to socials
-    postStatus(tweets[entry.tweet]);
+    debug("Posting...");
+    postStatus(fediPosts[entry.tweet], bskyPosts[entry.tweet]);
+    debug("Posted successfully");
 
     // increment
     entry.tweet = entry.tweet + 1;
-    if (entry.tweet >= tweets.length) entry.tweet = 0;
+    if (entry.tweet >= tweets.length) {
+      entry.tweet = 0;
+      debug("Index reached limit, tweets will start from the top");
+    }
 
     // save db entry
     await db.updateOne({ id: 0 }, entry);
   } catch (error) {
     loggy.critical(
-      `There was an error while posting the next status message: ${error}`,
+      `There was an error while posting the status message: ${error}`,
     );
   }
 }
