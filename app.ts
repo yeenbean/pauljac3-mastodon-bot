@@ -18,7 +18,7 @@ const { BskyAgent } = api; // it doesnt work unless i do this. goofy fkn module.
 
 // retrieve environment variables
 const env = await config();
-loggy.info("env file loaded");
+//loggy.info("env file loaded");
 
 // check that required information was loaded from env
 const requiredVars: string[] = [
