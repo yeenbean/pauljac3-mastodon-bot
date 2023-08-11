@@ -28,12 +28,20 @@ const requiredVars: string[] = [
   "BSKY_ID",
   "BSKY_PW",
   "BSKY_URL",
+  "DEBUG",
 ];
 
 for (let index = 0; index < requiredVars.length; index++) {
   if (env[requiredVars[index]] == undefined) {
     throw new Error(env[requiredVars[index]] + " was not configured.");
   }
+}
+
+// set up debugging output
+let debugEnabled = false;
+if (env["DEBUG"] == "true") debugEnabled = true;
+function debug(message: string): void {
+  if (debugEnabled) loggy.debug(message);
 }
 
 // login to masto
@@ -44,9 +52,11 @@ const masto = await login({
 loggy.success("Connected to Mastodon.");
 
 // login to bsky
+debug("Creating Bluesky agent");
 const bsky = new BskyAgent({
   service: env["BSKY_URL"],
 });
+debug("Logging into Bluesky");
 await bsky.login({
   identifier: env["BSKY_ID"],
   password: env["BSKY_PW"],
@@ -54,6 +64,7 @@ await bsky.login({
 loggy.success("Connected to Bluesky.");
 
 // build tweets array
+debug("Building tweets array");
 const tweets = Deno.readTextFileSync("./tweet_file.txt").split("\n");
 loggy.success(`${tweets.length} tweets loaded.`);
 
@@ -95,6 +106,7 @@ if (count == 0) {
 
 try {
   // load the expected database entry
+  debug("Making sure db loads correctly");
   const test = await db.findOne({
     id: 0,
   });
@@ -193,7 +205,7 @@ function sleepSync(milliseconds: number) {
  * Heartbeat function. This should run every 60 seconds.
  */
 function heartbeat() {
-  //loggy.debug("Heartbeat.");
+  debug("Heartbeat");
   const date = new Date();
 
   if (date.getMinutes() % 30 == 0) {
@@ -237,12 +249,12 @@ if (now.getMinutes() == 59) {
     0,
   );
 }
-loggy.log("Synchronizing to the top of the minute...");
+debug("Synchronizing to the top of the minute...");
 sleepSync(Math.abs(next.getTime() - now.getTime()));
-loggy.log("Synchronized.");
+debug("Synchronized.");
 heartbeat();
-loggy.log("Initial heartbeat triggered.");
+debug("Initial heartbeat triggered.");
 
 // ? setInterval() can theorhetically drift. Should we use something like sleepSync() for the heartbeat for more precision?
 setInterval(heartbeat, 60000); // we want to run the heartbeat function every 60 seconds, like a cron job.
-loggy.log("Heartbeat started, polling every 60 seconds.");
+debug("Heartbeat started, polling every 60 seconds.");
