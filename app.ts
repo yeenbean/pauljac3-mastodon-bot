@@ -2,9 +2,9 @@ const header = `                   __  _          ____
    ___  ___ ___ __/ / (_)__ _____|_  /
   / _ \\/ _ \`/ // / / / / _ \`/ __//_ < 
  / .__/\\_,_/\\_,_/_/_/ /\\_,_/\\__/____/ 
-/_/              |___/                `;
+/_/              |___/
+                       for Mastodon and Bluesky.`;
 console.log(header);
-console.log("for Mastodon and Bluesky.");
 console.log();
 console.log();
 
