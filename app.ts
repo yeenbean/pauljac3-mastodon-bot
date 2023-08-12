@@ -14,7 +14,7 @@ import { config } from "https://deno.land/std@0.171.0/dotenv/mod.ts";
 import * as loggy from "https://deno.land/x/loggy@0.0.2/main.ts";
 import { Database } from "https://deno.land/x/aloedb@0.9.0/mod.ts";
 import api from "npm:@atproto/api@^0.5.4";
-import { TwitterApi } from "npm:twitter-api-v2@^1.15.1";
+import { TwitterApi, TwitterApiTokens } from "npm:twitter-api-v2@^1.15.1";
 const { BskyAgent } = api; // it doesnt work unless i do this. goofy fkn module.
 
 // retrieve environment variables
@@ -70,7 +70,13 @@ await bsky.login({
 loggy.success("Connected to Bluesky.");
 
 // login to twitter
-const twitterUserClient = new TwitterApi(env["TWITTER_BEARER_TOKEN"]);
+const twitterTokens: TwitterApiTokens = {
+  appKey: env["TWITTER_API_KEY"],
+  appSecret: env["TWITTER_API_SECRET"],
+  accessToken: env["TWITTER_ACCESS_TOKEN"],
+  accessSecret: env["TWITTER_ACCESS_TOKEN_SECRET"],
+};
+const twitterUserClient = new TwitterApi(twitterTokens);
 const rwTwitter = twitterUserClient.readWrite;
 
 // build tweets array
@@ -154,7 +160,11 @@ try {
  * This function posts a status message to each connected account.
  * @param message The status to post to each account.
  */
-async function postStatus(fediPost: string, bskyPost: string, twitterPost: string) {
+async function postStatus(
+  fediPost: string,
+  bskyPost: string,
+  twitterPost: string,
+) {
   // in the future, this function will also post to bluesky. each individual platform will move to its own function for actual posting functionality. yes ik thats hard to read im eepy.
   // Try to post to Mastodon
   try {
@@ -182,6 +192,7 @@ async function postStatus(fediPost: string, bskyPost: string, twitterPost: strin
   // Try posting to *shudders* X
   try {
     await rwTwitter.v2.tweet(twitterPost);
+    loggy.up(`"twitter: ${twitterPost}"`);
   } catch (error) {
     loggy.fail(`There was a problem while posting to Twitter: ${error}`);
   }
@@ -214,7 +225,11 @@ async function postNextStatus(): Promise<void> {
 
     // post to socials
     debug("Posting...");
-    postStatus(fediPosts[entry.tweet], bskyPosts[entry.tweet], tweets[entry.tweet]);
+    postStatus(
+      fediPosts[entry.tweet],
+      bskyPosts[entry.tweet],
+      tweets[entry.tweet],
+    );
     debug("Posted successfully");
 
     // increment
