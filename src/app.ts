@@ -269,10 +269,19 @@ async function postReplies(): Promise<void> {
 }
 
 async function postBskyReplies(): Promise<void> {
-  const bskyNotifsCount = await bsky.app.bsky.notification.getUnreadCount();
-  debug(`bsky: notif count: ${bskyNotifsCount.data.count}`);
+  let bskyNotifsCount = undefined;
+  try {
+    bskyNotifsCount = await bsky.app.bsky.notification.getUnreadCount();
+  } catch (error) {
+    loggy.fail(
+      `There was an error retrieving the unread notification count for Bluesky.`,
+    );
+    loggy.fail(`${error}`);
+    return;
+  }
+  debug(`bsky: notif count: ${bskyNotifsCount?.data.count}`);
 
-  if (bskyNotifsCount.data.count <= 0) return;
+  if (bskyNotifsCount == undefined || bskyNotifsCount.data.count <= 0) return;
 
   const bskyNotifs = await bsky.app.bsky.notification.listNotifications({
     limit: bskyNotifsCount.data.count,
@@ -280,24 +289,33 @@ async function postBskyReplies(): Promise<void> {
   debug(
     `bsky: notifs count scraped: ${bskyNotifs.data.notifications.length}`,
   );
-  await bsky.app.bsky.notification.updateSeen({seenAt: new Date().toISOString()});
-
-  for (let index = 0; index < bskyNotifs.data.notifications.length; index++) {
-    if (bskyNotifs.data.notifications[index].reason == "mention") {
-      bsky.post({
-        reply: {
-          root: {
-            uri: bskyNotifs.data.notifications[index].uri,
-            cid: bskyNotifs.data.notifications[index].cid,
+  await bsky.app.bsky.notification.updateSeen({
+    seenAt: new Date().toISOString(),
+  });
+  try {
+    for (let index = 0; index < bskyNotifs.data.notifications.length; index++) {
+      if (bskyNotifs.data.notifications[index].reason == "reply") {
+        debug(
+          `Replying to ${bskyNotifs.data.notifications[index].author.handle}`,
+        );
+        bsky.post({
+          reply: {
+            root: {
+              uri: bskyNotifs.data.notifications[index].uri,
+              cid: bskyNotifs.data.notifications[index].cid,
+            },
+            parent: {
+              uri: bskyNotifs.data.notifications[index].uri,
+              cid: bskyNotifs.data.notifications[index].cid,
+            },
           },
-          parent: {
-            uri: bskyNotifs.data.notifications[index].uri,
-            cid: bskyNotifs.data.notifications[index].cid,
-          },
-        },
-        text: `${replies[Math.floor(Math.random() * replies.length)]}`,
-      });
+          text: `${replies[Math.floor(Math.random() * replies.length)]}`,
+        });
+      }
     }
+  } catch (error) {
+    loggy.fail("There was an error while processing Bluesky notifications.");
+    loggy.fail(`${error}`);
   }
 }
 
@@ -391,7 +409,9 @@ if (now.getMinutes() == 59) {
 
 switch (Deno.args[0]) {
   case "--clearNotifs": {
-    await bsky.app.bsky.notification.updateSeen({seenAt: new Date().toISOString()});
+    await bsky.app.bsky.notification.updateSeen({
+      seenAt: new Date().toISOString(),
+    });
     await masto.v1.notifications.clear();
     break;
   }
@@ -414,7 +434,9 @@ switch (Deno.args[0]) {
     debug(
       `bsky: notifs count scraped: ${bskyNotifs.data.notifications.length}`,
     );
-    await bsky.app.bsky.notification.updateSeen({seenAt: new Date().toISOString()});
+    await bsky.app.bsky.notification.updateSeen({
+      seenAt: new Date().toISOString(),
+    });
 
     for (let index = 0; index < bskyNotifs.data.notifications.length; index++) {
       if (bskyNotifs.data.notifications[index].reason == "mention") {
