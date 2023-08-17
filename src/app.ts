@@ -1,3 +1,6 @@
+// quit if just refreshing cache
+if (Deno.args[0] == "--refresh") close();
+
 const header = `                   __  _          ____
    ___  ___ ___ __/ / (_)__ _____|_  /
   / _ \\/ _ \`/ // / / / / _ \`/ __//_ < 
@@ -13,7 +16,7 @@ import { createRestAPIClient } from "npm:masto@^6";
 import { config } from "https://deno.land/std@0.171.0/dotenv/mod.ts";
 import * as loggy from "https://deno.land/x/loggy@0.0.2/main.ts";
 import { Database } from "https://deno.land/x/aloedb@0.9.0/mod.ts";
-import api from "npm:@atproto/api@^0.5.4";
+import api from "npm:@atproto/api@^0.6";
 import { TwitterApi, TwitterApiTokens } from "npm:twitter-api-v2@^1.15.1";
 const { BskyAgent } = api; // it doesnt work unless i do this. goofy fkn module.
 
@@ -261,10 +264,46 @@ async function postNextStatus(): Promise<void> {
 }
 
 async function postReplies(): Promise<void> {
+  await postMastoReplies();
+  await postBskyReplies();
+}
+
+async function postBskyReplies(): Promise<void> {
+  const bskyNotifsCount = await bsky.app.bsky.notification.getUnreadCount();
+  debug(`bsky: notif count: ${bskyNotifsCount.data.count}`);
+
+  if (bskyNotifsCount.data.count <= 0) close();
+
+  const bskyNotifs = await bsky.app.bsky.notification.listNotifications({
+    limit: bskyNotifsCount.data.count,
+  });
+  debug(
+    `bsky: notifs count scraped: ${bskyNotifs.data.notifications.length}`,
+  );
+  await bsky.app.bsky.notification.updateSeen({seenAt: new Date().toISOString()});
+
+  for (let index = 0; index < bskyNotifs.data.notifications.length; index++) {
+    if (bskyNotifs.data.notifications[index].reason == "mention") {
+      bsky.post({
+        reply: {
+          root: {
+            uri: bskyNotifs.data.notifications[index].uri,
+            cid: bskyNotifs.data.notifications[index].cid,
+          },
+          parent: {
+            uri: bskyNotifs.data.notifications[index].uri,
+            cid: bskyNotifs.data.notifications[index].cid,
+          },
+        },
+        text: `${replies[Math.floor(Math.random() * replies.length)]}`,
+      });
+    }
+  }
+}
+
+async function postMastoReplies(): Promise<void> {
   const notifications = await masto.v1.notifications.list();
   await masto.v1.notifications.clear();
-
-  console.log(notifications);
 
   if (!notifications) return;
   if (notifications.length == 0) return;
@@ -351,10 +390,51 @@ if (now.getMinutes() == 59) {
 }
 
 switch (Deno.args[0]) {
-  case "--testReply":
-    await postReplies();
-    close();
+  case "--clearNotifs": {
+    await bsky.app.bsky.notification.updateSeen({seenAt: new Date().toISOString()});
+    await masto.v1.notifications.clear();
     break;
+  }
+  case "--testReply":
+    loggy.log("doing the thing");
+    await postReplies();
+    loggy.log("done");
+    setInterval(close, 10000);
+    break;
+
+  case "--testBsky": {
+    const bskyNotifsCount = await bsky.app.bsky.notification.getUnreadCount();
+    debug(`bsky: notif count: ${bskyNotifsCount.data.count}`);
+
+    if (bskyNotifsCount.data.count <= 0) close();
+
+    const bskyNotifs = await bsky.app.bsky.notification.listNotifications({
+      limit: bskyNotifsCount.data.count,
+    });
+    debug(
+      `bsky: notifs count scraped: ${bskyNotifs.data.notifications.length}`,
+    );
+    await bsky.app.bsky.notification.updateSeen({seenAt: new Date().toISOString()});
+
+    for (let index = 0; index < bskyNotifs.data.notifications.length; index++) {
+      if (bskyNotifs.data.notifications[index].reason == "mention") {
+        bsky.post({
+          reply: {
+            root: {
+              uri: bskyNotifs.data.notifications[index].uri,
+              cid: bskyNotifs.data.notifications[index].cid,
+            },
+            parent: {
+              uri: bskyNotifs.data.notifications[index].uri,
+              cid: bskyNotifs.data.notifications[index].cid,
+            },
+          },
+          text: `${replies[Math.floor(Math.random() * replies.length)]}`,
+        });
+      }
+    }
+    break;
+  }
 
   case undefined:
     debug("Synchronizing to the top of the minute...");

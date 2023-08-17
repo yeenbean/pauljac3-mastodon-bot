@@ -53,6 +53,7 @@
       "@atproto/api@^0.4.4": "@atproto/api@0.4.4",
       "@atproto/api@^0.5.2": "@atproto/api@0.5.4",
       "@atproto/api@^0.5.4": "@atproto/api@0.5.4",
+      "@atproto/api@^0.6": "@atproto/api@0.6.4",
       "masto@^5": "masto@5.11.4_ws@8.13.0",
       "masto@^6": "masto@6.1.0_ws@8.13.0",
       "twitter-api-v2@^1.15.1": "twitter-api-v2@1.15.1"
@@ -70,6 +71,16 @@
       },
       "@atproto/api@0.5.4": {
         "integrity": "sha512-e2M5d+w6PMEzunVWbeX4yD9pMXaP6FakQYOfj4gUz9tL05k94Qv1dcX8IFUHdWEunHijLGU2fU2SNC4jgiuLBA==",
+        "dependencies": {
+          "@atproto/common-web": "@atproto/common-web@0.2.0",
+          "@atproto/uri": "@atproto/uri@0.1.0",
+          "@atproto/xrpc": "@atproto/xrpc@0.2.0",
+          "tlds": "tlds@1.240.0",
+          "typed-emitter": "typed-emitter@2.1.0"
+        }
+      },
+      "@atproto/api@0.6.4": {
+        "integrity": "sha512-h12ybc9PlNnlxJi73RRb3tpQ2pCDzUSOrferuNAXj5XRCB6F+rrxKOmqq5A48L8WwnJIoYrfb2xLNc4PL6iVQg==",
         "dependencies": {
           "@atproto/common-web": "@atproto/common-web@0.2.0",
           "@atproto/uri": "@atproto/uri@0.1.0",
