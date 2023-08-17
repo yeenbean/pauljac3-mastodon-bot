@@ -9,7 +9,7 @@ console.log();
 console.log();
 
 // import required modules
-import { login } from "https://cdn.skypack.dev/masto@5";
+import { createRestAPIClient } from "npm:masto@^6";
 import { config } from "https://deno.land/std@0.171.0/dotenv/mod.ts";
 import * as loggy from "https://deno.land/x/loggy@0.0.2/main.ts";
 import { Database } from "https://deno.land/x/aloedb@0.9.0/mod.ts";
@@ -51,7 +51,7 @@ function debug(message: string): void {
 }
 
 // login to masto
-const masto = await login({
+const masto = createRestAPIClient({
   url: "https://botsin.space",
   accessToken: env["ACCESS_TOKEN"],
 });
@@ -95,6 +95,12 @@ const bskyPosts = Deno.readTextFileSync("./src/tweet_file_bsky.txt").split(
   "\n",
 );
 loggy.success(`${bskyPosts.length} posts loaded.`);
+
+debug("Building replies");
+const replies = Deno.readTextFileSync("./src/reply_random.txt").split(
+  "\n",
+);
+loggy.success(`${replies.length} replies loaded.`);
 
 if (
   tweets.length != fediPosts.length || tweets.length != bskyPosts.length ||
@@ -254,6 +260,34 @@ async function postNextStatus(): Promise<void> {
   }
 }
 
+async function postReplies(): Promise<void> {
+  const notifications = await masto.v1.notifications.list();
+  await masto.v1.notifications.clear();
+
+  console.log(notifications);
+
+  if (!notifications) return;
+  if (notifications.length == 0) return;
+
+  for (let index = 0; index < notifications.length; index++) {
+    if (notifications[index].type != "mention") break; // we only want him to respond to mentions
+
+    try {
+      await masto.v1.statuses.$select(notifications[index].status!.id)
+        .favourite();
+      masto.v1.statuses.create({
+        status: `@${notifications[index].account.acct} ${
+          replies[Math.floor(Math.random() * replies.length)]
+        }`,
+        visibility: "unlisted",
+        inReplyToId: notifications[index].status!.id,
+      });
+    } catch (error) {
+      loggy.fail(error);
+    }
+  }
+}
+
 /**
  * This function blocks the thread for the specified amount of time.
  * @param milliseconds Time in milliseconds to sleep
@@ -275,6 +309,8 @@ function heartbeat() {
   if (date.getMinutes() % 30 == 0) {
     postNextStatus(); // do not await this so theres less risk of the heartbeat getting out of sync!
   }
+
+  postReplies();
 }
 
 // Before triggering the heartbeat, we want to synchronize the thread so that the heartbeat starts at the top of the minute.
@@ -313,12 +349,28 @@ if (now.getMinutes() == 59) {
     0,
   );
 }
-debug("Synchronizing to the top of the minute...");
-sleepSync(Math.abs(next.getTime() - now.getTime()));
-debug("Synchronized.");
-heartbeat();
-debug("Initial heartbeat triggered.");
 
-// ? setInterval() can theorhetically drift. Should we use something like sleepSync() for the heartbeat for more precision?
-setInterval(heartbeat, 60000); // we want to run the heartbeat function every 60 seconds, like a cron job.
-debug("Heartbeat started, polling every 60 seconds.");
+switch (Deno.args[0]) {
+  case "--testReply":
+    await postReplies();
+    close();
+    break;
+
+  case undefined:
+    debug("Synchronizing to the top of the minute...");
+    sleepSync(Math.abs(next.getTime() - now.getTime()));
+    debug("Synchronized.");
+    heartbeat();
+    debug("Initial heartbeat triggered.");
+
+    // ? setInterval() can theorhetically drift. Should we use something like sleepSync() for the heartbeat for more precision?
+    setInterval(heartbeat, 60000); // we want to run the heartbeat function every 60 seconds, like a cron job.
+    debug("Heartbeat started, polling every 60 seconds.");
+    break;
+
+  default:
+    console.log("There was an invalid option supplied.");
+    console.log(`"${Deno.args[0]}"`);
+    close();
+    break;
+}
