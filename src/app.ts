@@ -272,7 +272,7 @@ async function postBskyReplies(): Promise<void> {
   const bskyNotifsCount = await bsky.app.bsky.notification.getUnreadCount();
   debug(`bsky: notif count: ${bskyNotifsCount.data.count}`);
 
-  if (bskyNotifsCount.data.count <= 0) close();
+  if (bskyNotifsCount.data.count <= 0) return;
 
   const bskyNotifs = await bsky.app.bsky.notification.listNotifications({
     limit: bskyNotifsCount.data.count,
