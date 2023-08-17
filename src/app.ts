@@ -81,15 +81,19 @@ const rwTwitter = twitterUserClient.readWrite;
 
 // build tweets array
 debug("Building tweets array");
-const tweets = Deno.readTextFileSync("./tweet_file.txt").split("\n");
+const tweets = Deno.readTextFileSync("./src/tweet_file.txt").split("\n");
 loggy.success(`${tweets.length} posts loaded.`);
 
 debug("Building fedi posts");
-const fediPosts = Deno.readTextFileSync("./tweet_file_fedi.txt").split("\n");
+const fediPosts = Deno.readTextFileSync("./src/tweet_file_fedi.txt").split(
+  "\n",
+);
 loggy.success(`${fediPosts.length} posts loaded.`);
 
 debug("Building bsky posts");
-const bskyPosts = Deno.readTextFileSync("./tweet_file_bsky.txt").split("\n");
+const bskyPosts = Deno.readTextFileSync("./src/tweet_file_bsky.txt").split(
+  "\n",
+);
 loggy.success(`${bskyPosts.length} posts loaded.`);
 
 if (
@@ -146,6 +150,8 @@ try {
   // Validate database entry
   if (!test) throw new Error("Database entry missing.");
   if (test.id != 0) throw new Error("The wrong database entry was loaded.");
+  loggy.debug(`id:\t\t${test.id}`);
+  loggy.debug(`tweet:\t${test.tweet}`);
   loggy.success(`Database loaded.`);
 } catch (error) {
   loggy.critical(
