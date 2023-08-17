@@ -3,6 +3,7 @@
     "start:dev": "deno run --allow-read --allow-env --allow-net --watch src/app.ts",
     "start": "deno run --allow-read --allow-write --allow-env --allow-net src/app.ts",
     "start:fresh": "deno run --allow-read --allow-write --allow-env --allow-net --reload src/app.ts",
+    "refresh": "deno run --allow-read --allow-write --allow-env --allow-net --reload src/app.ts --refresh",
     "fmt": "deno fmt src/*",
     "lint": "deno lint src/*"
   }
