@@ -1,6 +1,6 @@
 # pauljac3
 
-The official bot for Pauljac3. Supports Mastodon and Bluesky.
+The official bot for Pauljac3. Supports Mastodon and Bluesky. (and twitter now lol)
 
 ## TODO
 
