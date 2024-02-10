@@ -1,0 +1,9 @@
+services:
+  pauljac-bot:
+    build:
+      context: .
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+    restart: "unless-stopped"
