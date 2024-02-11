@@ -4,8 +4,8 @@ The official bot for Pauljac3. Supports Mastodon and Bluesky. (and twitter now l
 
 ## TODO
 
-- [ ] Random replies.
-- [ ] Timeline streaming.
+- [x] Random replies.
+- [ ] Timeline streaming. (probably not going to happen lmao)
 - [ ] Keyword replies.
 
 ## Contribution
